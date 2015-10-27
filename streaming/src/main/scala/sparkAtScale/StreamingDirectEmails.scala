@@ -66,12 +66,11 @@ object StreamingDirectEmails {
         val df = message.map {
           case (key, nxtEmail) => nxtEmail.split("::")
         }.map(email => {
-          val time_delivered: DateTime = new DateTime(email(3).trim.toLong)
-          val time_forwarded: DateTime = new DateTime(email(4).trim.toLong)
-          val time_read: DateTime = new DateTime(email(5).trim.toLong)
-          val time_replied: DateTime = new DateTime(email(6).trim.toLong)
-          Email(email(0).trim.toString, UUID.fromString(email(1).trim.toString), UUID.fromString(email(2).trim.toString),
-            time_delivered, time_forwarded, time_read, time_replied)
+          val time_delivered: Long = email(3).trim.toLong
+          val time_forwarded: Long = email(4).trim.toLong
+          val time_read: Long = email(5).trim.toLong
+          val time_replied: Long = email(6).trim.toLong
+          Email(email(0).trim.toString, email(1).trim.toString, email(2).trim.toString, time_delivered, time_forwarded, time_read, time_replied)
         }).toDF("msg_id", "tenant_id", "mailbox_id", "time_delivered", "time_forwarded", "time_read", "time_replied")
 
         // this can be used to debug dataframes
@@ -84,6 +83,7 @@ object StreamingDirectEmails {
           .mode(SaveMode.Append)
           .options(Map("keyspace" -> "email_db", "table" -> "email_msg_tracker"))
           .save()
+        
       }
     }
 

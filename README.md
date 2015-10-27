@@ -23,9 +23,9 @@ This demo simulates a stream of movie ratings.  Data flows from akka -> kafka ->
 
 * run the feeder
 
-Copy the application.conf file to dev.conf and modify the zookeeper location.  Then override the configs by using -Dconfig.file=dev.conf to use the new config.
+Copy the application.conf file to dev.conf and modify the zookeeper location and kafka topic accordingly.  Then override the configs by using -Dconfig.file=dev.conf to use the new config.
 
-`java -Xmx5g -Dconfig.file=dev.conf -jar feeder/target/scala-2.10/feeder-assembly-1.0.jar 1 100 true 2>&1 1>feeder-out.log &`
+`java -Xmx5g -Dconfig.file=dev.conf -jar feeder/target/scala-2.10/feeder-assembly-1.0.jar 1 100 emailFeeder 2>&1 1>feeder-out.log &`
 
 
 
@@ -38,7 +38,7 @@ Copy the application.conf file to dev.conf and modify the zookeeper location.  T
 `spark-submit --packages org.apache.spark:spark-streaming-kafka-assembly_2.10:1.4.1 --class sparkAtScale.StreamingRatings streaming/target/scala-2.10/streaming_2.10-1.0.jar`
  
  * running on a server in foreground
- dse spark-submit --packages org.apache.spark:spark-streaming-kafka-assembly_2.10:1.4.1 --class sparkAtScale.StreamingDirectRatings streaming_2.10-1.0.jar <kafka_broker_ip>:9092 true <checkpoint_path>
+ `dse spark-submit --packages org.apache.spark:spark-streaming-kafka-assembly_2.10:1.4.1 --class sparkAtScale.StreamingDirectEmails ./streaming/target/scala-2.10/streaming_2.10-0.1.jar 10.200.185.103:9092 true emails_checkpoint`
  
 * running on the server for production mode
 `nohup spark-submit --packages org.apache.spark:spark-streaming-kafka-assembly_2.10:1.4.1 --class sparkAtScale.StreamingRatings streaming/target/scala-2.10/streaming_2.10-1.0.jar 2>&1 1>streaming-out.log &`

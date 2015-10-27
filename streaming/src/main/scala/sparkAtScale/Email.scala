@@ -5,10 +5,10 @@ import org.joda.time.DateTime
 
 case class Email(
                   msg_id: String,
-                  tenant_id: UUID,
-                  mailbox_id: UUID,
-                  time_delivered: org.joda.time.DateTime,
-                  time_forwarded: org.joda.time.DateTime,
-                  time_read: org.joda.time.DateTime,
-                  time_replied: org.joda.time.DateTime
+                  tenant_id: String,
+                  mailbox_id: String,
+                  time_delivered: Long,
+                  time_forwarded: Long,
+                  time_read: Long,
+                  time_replied: Long
                   )
