@@ -1,5 +1,7 @@
 package sparkAtScale
 
+import java.util.UUID
+
 import kafka.serializer.StringDecoder
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.deploy.SparkHadoopUtil
@@ -13,7 +15,7 @@ import org.joda.time.DateTime
 /** This uses the Kafka Direct introduced in Spark 1.4
   *
   */
-object StreamingDirectRatings {
+object StreamingDirectEmails {
 
   def main(args: Array[String]) {
 
@@ -37,33 +39,40 @@ object StreamingDirectRatings {
       newSsc
     }
 
+    /*
     val hadoopConf: Configuration = SparkHadoopUtil.get.conf
     hadoopConf.set("cassandra.username", "robot")
     hadoopConf.set("cassandra.password", "silver")
     val ssc = StreamingContext.getActiveOrCreate(checkpoint_path, createStreamingContext, hadoopConf)
+    */
+    val ssc = StreamingContext.getActiveOrCreate(checkpoint_path, createStreamingContext)
 
     val sqlContext = SQLContext.getOrCreate(sc)
     import sqlContext.implicits._
 
-    val topics = Set("ratings")
+    val topics = Set("emails")
     val kafkaParams = Map[String, String]("metadata.broker.list" -> brokers)
     println(s"connecting to brokers: $brokers")
     println(s"ssc: $ssc")
     println(s"kafkaParams: $kafkaParams")
     println(s"topics: $topics")
 
-    val ratingsStream = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](ssc, kafkaParams, topics)
+    val emailsStream = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](ssc, kafkaParams, topics)
 
-    ratingsStream.foreachRDD {
+    emailsStream.foreachRDD {
       (message: RDD[(String, String)], batchTime: Time) => {
-        // convert each RDD from the batch into a Ratings DataFrame
-        //rating data has the format user_id:movie_id:rating:timestamp
+        // convert each RDD from the batch into a Email DataFrame
+        //email data has the format msg_id:tenant_id:mailbox_id:time_delivered:time_forwarded:time_read:time_replied
         val df = message.map {
-          case (key, nxtRating) => nxtRating.split("::")
-        }.map(rating => {
-          val timestamp: Long = new DateTime(rating(3).trim.toLong).getMillis
-          Rating(rating(0).trim.toInt, rating(1).trim.toInt, rating(2).trim.toFloat, timestamp)
-        }).toDF("user_id", "movie_id", "rating", "timestamp")
+          case (key, nxtEmail) => nxtEmail.split("::")
+        }.map(email => {
+          val time_delivered: Long = new DateTime(email(3).trim.toLong)
+          val time_forwarded: Long = new DateTime(email(4).trim.toLong)
+          val time_read: Long = new DateTime(email(5).trim.toLong)
+          val time_replied: Long = new DateTime(email(6).trim.toLong)
+          Email(email(0).trim.toString, UUID.fromString(email(1).trim.toString), UUID.fromString(email(2).trim.toString),
+            time_delivered, time_forwarded, time_read, time_replied)
+        }).toDF("msg_id", "tenant_id", "mailbox_id", "time_delivered", "time_forwarded", "time_read", "time_replied")
 
         // this can be used to debug dataframes
         if (debugOutput)
@@ -73,7 +82,7 @@ object StreamingDirectRatings {
         // Note:  Cassandra has been initialized through dse spark-submit, so we don't have to explicitly set the connection
         df.write.format("org.apache.spark.sql.cassandra")
           .mode(SaveMode.Append)
-          .options(Map("keyspace" -> "movie_db", "table" -> "rating_by_movie"))
+          .options(Map("keyspace" -> "email_db", "table" -> "email_msg_tracker"))
           .save()
       }
     }
