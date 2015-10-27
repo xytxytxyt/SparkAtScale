@@ -66,10 +66,10 @@ object StreamingDirectEmails {
         val df = message.map {
           case (key, nxtEmail) => nxtEmail.split("::")
         }.map(email => {
-          val time_delivered: Long = new DateTime(email(3).trim.toLong)
-          val time_forwarded: Long = new DateTime(email(4).trim.toLong)
-          val time_read: Long = new DateTime(email(5).trim.toLong)
-          val time_replied: Long = new DateTime(email(6).trim.toLong)
+          val time_delivered: DateTime = new DateTime(email(3).trim.toLong)
+          val time_forwarded: DateTime = new DateTime(email(4).trim.toLong)
+          val time_read: DateTime = new DateTime(email(5).trim.toLong)
+          val time_replied: DateTime = new DateTime(email(6).trim.toLong)
           Email(email(0).trim.toString, UUID.fromString(email(1).trim.toString), UUID.fromString(email(2).trim.toString),
             time_delivered, time_forwarded, time_read, time_replied)
         }).toDF("msg_id", "tenant_id", "mailbox_id", "time_delivered", "time_forwarded", "time_read", "time_replied")

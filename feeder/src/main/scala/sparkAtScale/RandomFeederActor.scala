@@ -57,14 +57,14 @@ class RandomFeederActor(tickInterval:FiniteDuration) extends Actor with ActorLog
     case SendNextLine =>
 
       val numPartitions = 1000 // follow-up needed: constraining this for now, but we'll want to generalize this
-      val nxtMessageId = "messageId-"+rangGen.nextInt(numPartitions)
+      val nxtMessageId = "messageId-"+randGen.nextInt(numPartitions)
       // follow-up needed: keeping this fixed for now to make querying easier
       val nxtTenantId = UUID.fromString("9b657ca1-bfb1-49c0-85f5-04b127adc6f3") 
       val nxtMailboxId = UUID.randomUUID()
-      val nxtTimeDelivered = dateTime.plusSeconds(r.nextInt()).getMillis
-      val nxtTimeForwarded = dateTime.plusSeconds(r.nextInt()).getMillis
-      val nxtTimeRead = dateTime.plusSeconds(r.nextInt()).getMillis
-      val nxtTimeReplied = dateTime.plusSeconds(r.nextInt()).getMillis
+      val nxtTimeDelivered = dateTime.plusSeconds(randGen.nextInt()).getMillis
+      val nxtTimeForwarded = dateTime.plusSeconds(randGen.nextInt()).getMillis
+      val nxtTimeRead = dateTime.plusSeconds(randGen.nextInt()).getMillis
+      val nxtTimeReplied = dateTime.plusSeconds(randGen.nextInt()).getMillis
 
       val nxtEmail = Email(nxtMessageId, nxtTenantId, nxtMailboxId, nxtTimeDelivered, nxtTimeForwarded, nxtTimeRead, nxtTimeReplied)
 
@@ -75,7 +75,7 @@ class RandomFeederActor(tickInterval:FiniteDuration) extends Actor with ActorLog
       val key = s"${nxtEmail.msg_id}${nxtEmail.tenant_id}${nxtEmail.mailbox_id}"
       
       //val record = new ProducerRecord[String, String](feederExtension.kafkaTopic, key, nxtEmail.toString)
-      val record = new ProducerRecord[String, UUID, UUID](feederExtension.kafkaTopic, key, nxtEmail.toString)
+      val record = new ProducerRecord[String, String](feederExtension.kafkaTopic, key, nxtEmail.toString)
 
       val future = feederExtension.producer.send(record, new Callback {
         override def onCompletion(result: RecordMetadata, exception: Exception) {
