@@ -1,4 +1,4 @@
-CREATE KEYSPACE IF NOT EXISTS email_db WITH replication = {'class':'NetworkTopologyStrategy', 'Analytics':1};
+CREATE KEYSPACE IF NOT EXISTS email_db WITH replication = {'class':'NetworkTopologyStrategy', 'Analytics':3};
 
 CREATE TABLE IF NOT EXISTS email_db.email_msg_tracker (
     msg_id text,
