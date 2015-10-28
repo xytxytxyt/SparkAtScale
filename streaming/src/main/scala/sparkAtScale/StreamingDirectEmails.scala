@@ -24,18 +24,23 @@ object StreamingDirectEmails {
       println("second param whether to display debug output  (true|false) ")
       println("third param is the checkpoint path  ")
       println("fourth param is the maxRatePerPartition (records/sec to read from each kafka partition)  ")
+      println("fifth param is the batch interval in milliseconds")
     }
 
     val brokers = args(0)
     val debugOutput = args(1).toBoolean
     val checkpoint_path = args(2).toString
     val maxRatePerPartition = args(3).toString
+    val batchIntervalInMillis = args(4).toInt
 
-    val conf = new SparkConf().set("spark.streaming.kafka.maxRatePerPartition", maxRatePerPartition)
+    //val conf = new SparkConf()
+    val conf = new SparkConf()
+                 .set("spark.streaming.kafka.maxRatePerPartition", maxRatePerPartition)
+                 .set("spark.cassandra.connection.keep_alive_ms", (batchIntervalInMillis*5).toString)
     val sc = SparkContext.getOrCreate(conf)
 
     def createStreamingContext(): StreamingContext = {
-      @transient val newSsc = new StreamingContext(sc, Milliseconds(1000))
+      @transient val newSsc = new StreamingContext(sc, Milliseconds(batchIntervalInMillis))
       newSsc.checkpoint(checkpoint_path)
       println(s"Creating new StreamingContext $newSsc with checkpoint path of: $checkpoint_path")
       newSsc

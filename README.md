@@ -38,7 +38,7 @@ Copy the application.conf file to dev.conf and modify the zookeeper location and
 `spark-submit --packages org.apache.spark:spark-streaming-kafka-assembly_2.10:1.4.1 --class sparkAtScale.StreamingRatings streaming/target/scala-2.10/streaming_2.10-1.0.jar`
  
  * running on a server in foreground
- `dse spark-submit --packages org.apache.spark:spark-streaming-kafka-assembly_2.10:1.4.1 --class sparkAtScale.StreamingDirectEmails ./streaming/target/scala-2.10/streaming_2.10-0.1.jar 10.200.185.103:9092 true emails_checkpoint`
+ `dse spark-submit --packages org.apache.spark:spark-streaming-kafka-assembly_2.10:1.4.1 --class sparkAtScale.StreamingDirectEmails ./streaming/target/scala-2.10/streaming_2.10-0.1.jar 10.200.185.103:9092 true emails_checkpoint <maxRatePerPartition> <batchInterval>`
  
 * running on the server for production mode
 `nohup spark-submit --packages org.apache.spark:spark-streaming-kafka-assembly_2.10:1.4.1 --class sparkAtScale.StreamingRatings streaming/target/scala-2.10/streaming_2.10-1.0.jar 2>&1 1>streaming-out.log &`
