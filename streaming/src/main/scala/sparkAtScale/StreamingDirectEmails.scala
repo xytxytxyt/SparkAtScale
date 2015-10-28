@@ -23,13 +23,15 @@ object StreamingDirectEmails {
       println("first paramteter is kafka broker ")
       println("second param whether to display debug output  (true|false) ")
       println("third param is the checkpoint path  ")
+      println("fourth param is the maxRatePerPartition (records/sec to read from each kafka partition)  ")
     }
 
     val brokers = args(0)
     val debugOutput = args(1).toBoolean
     val checkpoint_path = args(2).toString
+    val maxRatePerPartition = args(3).toString
 
-    val conf = new SparkConf()
+    val conf = new SparkConf().set("spark.streaming.kafka.maxRatePerPartition", maxRatePerPartition)
     val sc = SparkContext.getOrCreate(conf)
 
     def createStreamingContext(): StreamingContext = {
