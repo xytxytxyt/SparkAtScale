@@ -47,7 +47,7 @@ class EmailFeederActor(tickInterval:FiniteDuration) extends Actor with ActorLogg
     case SendNextLine =>
 
       val numPartitions = 100000 // follow-up needed: constraining this for now, but we'll want to generalize this
-      val nxtMessageId = f"messageId-tenant01-{randGen.nextInt(numPartitions)}%06d" // ex. "messageId-tenant01-074652".getBytes.length == 25
+      val nxtMessageId = f"messageId-tenant01-${randGen.nextInt(numPartitions)}%06d" // ex. "messageId-tenant01-074652".getBytes.length == 25
       // follow-up needed: keeping this fixed for now to make querying easier
       val nxtTenantId = UUID.fromString("9b657ca1-bfb1-49c0-85f5-04b127adc6f3")
       val nxtMailboxId = UUID.randomUUID()
