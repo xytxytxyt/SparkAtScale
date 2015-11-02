@@ -36,6 +36,7 @@ object StreamingDirectEmails {
     //val conf = new SparkConf()
     val conf = new SparkConf()
                  .set("spark.streaming.kafka.maxRatePerPartition", maxRatePerPartition)
+                 .set("spark.locality.wait", "0")
                  .set("spark.cassandra.connection.keep_alive_ms", (batchIntervalInMillis*5).toString)
     val sc = SparkContext.getOrCreate(conf)
 
