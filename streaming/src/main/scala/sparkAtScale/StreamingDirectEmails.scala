@@ -33,24 +33,17 @@ object StreamingDirectEmails {
     val maxRatePerPartition = args(3).toString
     val batchIntervalInMillis = args(4).toInt
 
-    //val conf = new SparkConf()
     val conf = new SparkConf()
                  .set("spark.streaming.kafka.maxRatePerPartition", maxRatePerPartition)
                  .set("spark.locality.wait", "0")
                  .set("spark.cassandra.connection.keep_alive_ms", (batchIntervalInMillis*5).toString)
 
     val sc = SparkContext.getOrCreate(conf)
-    val sqlContext = SQLContext.getOrCreate(sc)
-    import sqlContext.implicits._
 
     def createStreamingContext(): StreamingContext = {
       @transient val newSsc = new StreamingContext(sc, Milliseconds(batchIntervalInMillis))
       newSsc.checkpoint(checkpoint_path)
       println(s"Creating new StreamingContext $newSsc with checkpoint path of: $checkpoint_path")
-
-      ////// refactor
-      //val sqlContext = SQLContext.getOrCreate(sc)
-      //import sqlContext.implicits._
 
       val topics = Set("emails")
       val kafkaParams = Map[String, String]("metadata.broker.list" -> brokers)
@@ -60,22 +53,25 @@ object StreamingDirectEmails {
       println(s"topics: $topics")
 
       val emailsStream = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](newSsc, kafkaParams, topics)
-      // experimental: breaks checkpointing recovery for another reason: Can find class OffsetRange
-      //var offsetRanges = Array[OffsetRange]()
-
       emailsStream.foreachRDD {
         (message: RDD[(String, String)], batchTime: Time) => {
-          // convert each RDD from the batch into a Email DataFrame
-          //email data has the format msg_id:tenant_id:mailbox_id:time_delivered:time_forwarded:time_read:time_replied
+          // experimental
+          var offsetRanges = Array[OffsetRange]()
 
           // experimental
-          /*
           offsetRanges = message.asInstanceOf[HasOffsetRanges].offsetRanges
           for (o <- offsetRanges) {
-             println(s"Topic: ${o.topic} Partition: ${o.partition} FromOffset: ${o.fromOffset} UntilOffset: ${o.untilOffset}")
+             println(s"\nTopic: ${o.topic} Partition: ${o.partition} FromOffset: ${o.fromOffset} UntilOffset: ${o.untilOffset}")
           }
-          */
 
+          // Needs to be here: We have to create a SQLContext using the SparkContext that the StreamingContext is using.
+          // We need to lazily instantiate a singelton instance of the SQLContext in order to recover
+          // from a checkpoint.
+          val sqlContext = SQLContext.getOrCreate(message.sparkContext)
+          import sqlContext.implicits._
+
+          // convert each RDD from the batch into a Email DataFrame
+          //email data has the format msg_id:tenant_id:mailbox_id:time_delivered:time_forwarded:time_read:time_replied
           val df = message.map {
             case (key, nxtEmail) => nxtEmail.split("::")
           }.map(email => {
