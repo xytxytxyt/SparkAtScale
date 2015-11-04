@@ -8,7 +8,7 @@ import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{SQLContext, SaveMode}
-import org.apache.spark.streaming.kafka.KafkaUtils
+import org.apache.spark.streaming.kafka.{KafkaUtils,OffsetRange,HasOffsetRanges}
 import org.apache.spark.streaming.{Milliseconds, StreamingContext, Time}
 import org.joda.time.DateTime
 
@@ -66,11 +66,22 @@ object StreamingDirectEmails {
     println(s"topics: $topics")
 
     val emailsStream = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](ssc, kafkaParams, topics)
+    // experimental: breaks checkpointing recovery for another reason: Can find class OffsetRange
+    //var offsetRanges = Array[OffsetRange]()
 
     emailsStream.foreachRDD {
       (message: RDD[(String, String)], batchTime: Time) => {
         // convert each RDD from the batch into a Email DataFrame
         //email data has the format msg_id:tenant_id:mailbox_id:time_delivered:time_forwarded:time_read:time_replied
+
+        // experimental 
+        /*
+        offsetRanges = message.asInstanceOf[HasOffsetRanges].offsetRanges
+        for (o <- offsetRanges) {
+           println(s"Topic: ${o.topic} Partition: ${o.partition} FromOffset: ${o.fromOffset} UntilOffset: ${o.untilOffset}")
+        }
+        */
+
         val df = message.map {
           case (key, nxtEmail) => nxtEmail.split("::")
         }.map(email => {
