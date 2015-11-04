@@ -38,7 +38,10 @@ object StreamingDirectEmails {
                  .set("spark.streaming.kafka.maxRatePerPartition", maxRatePerPartition)
                  .set("spark.locality.wait", "0")
                  .set("spark.cassandra.connection.keep_alive_ms", (batchIntervalInMillis*5).toString)
+
     val sc = SparkContext.getOrCreate(conf)
+    val sqlContext = SQLContext.getOrCreate(sc)
+    import sqlContext.implicits._
 
     def createStreamingContext(): StreamingContext = {
       @transient val newSsc = new StreamingContext(sc, Milliseconds(batchIntervalInMillis))
@@ -46,17 +49,17 @@ object StreamingDirectEmails {
       println(s"Creating new StreamingContext $newSsc with checkpoint path of: $checkpoint_path")
 
       ////// refactor
-      val sqlContext = SQLContext.getOrCreate(sc)
-      import sqlContext.implicits._
+      //val sqlContext = SQLContext.getOrCreate(sc)
+      //import sqlContext.implicits._
 
       val topics = Set("emails")
       val kafkaParams = Map[String, String]("metadata.broker.list" -> brokers)
       println(s"connecting to brokers: $brokers")
-      println(s"ssc: $ssc")
+      //println(s"ssc: $ssc")
       println(s"kafkaParams: $kafkaParams")
       println(s"topics: $topics")
 
-      val emailsStream = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](ssc, kafkaParams, topics)
+      val emailsStream = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](newSsc, kafkaParams, topics)
       // experimental: breaks checkpointing recovery for another reason: Can find class OffsetRange
       //var offsetRanges = Array[OffsetRange]()
 
