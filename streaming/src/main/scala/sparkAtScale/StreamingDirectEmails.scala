@@ -44,6 +44,60 @@ object StreamingDirectEmails {
       @transient val newSsc = new StreamingContext(sc, Milliseconds(batchIntervalInMillis))
       newSsc.checkpoint(checkpoint_path)
       println(s"Creating new StreamingContext $newSsc with checkpoint path of: $checkpoint_path")
+
+      ////// refactor
+      val sqlContext = SQLContext.getOrCreate(sc)
+      import sqlContext.implicits._
+
+      val topics = Set("emails")
+      val kafkaParams = Map[String, String]("metadata.broker.list" -> brokers)
+      println(s"connecting to brokers: $brokers")
+      println(s"ssc: $ssc")
+      println(s"kafkaParams: $kafkaParams")
+      println(s"topics: $topics")
+
+      val emailsStream = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](ssc, kafkaParams, topics)
+      // experimental: breaks checkpointing recovery for another reason: Can find class OffsetRange
+      //var offsetRanges = Array[OffsetRange]()
+
+      emailsStream.foreachRDD {
+        (message: RDD[(String, String)], batchTime: Time) => {
+          // convert each RDD from the batch into a Email DataFrame
+          //email data has the format msg_id:tenant_id:mailbox_id:time_delivered:time_forwarded:time_read:time_replied
+
+          // experimental
+          /*
+          offsetRanges = message.asInstanceOf[HasOffsetRanges].offsetRanges
+          for (o <- offsetRanges) {
+             println(s"Topic: ${o.topic} Partition: ${o.partition} FromOffset: ${o.fromOffset} UntilOffset: ${o.untilOffset}")
+          }
+          */
+
+          val df = message.map {
+            case (key, nxtEmail) => nxtEmail.split("::")
+          }.map(email => {
+            val time_delivered: Long = email(3).trim.toLong
+            val time_forwarded: Long = email(4).trim.toLong
+            val time_read: Long = email(5).trim.toLong
+            val time_replied: Long = email(6).trim.toLong
+            Email(email(0).trim.toString, email(1).trim.toString, email(2).trim.toString, time_delivered, time_forwarded, time_read, time_replied)
+          }).toDF("msg_id", "tenant_id", "mailbox_id", "time_delivered", "time_forwarded", "time_read", "time_replied")
+
+          // this can be used to debug dataframes
+          if (debugOutput)
+            df.show()
+
+          // save the DataFrame to Cassandra
+          // Note:  Cassandra has been initialized through dse spark-submit, so we don't have to explicitly set the connection
+          df.write.format("org.apache.spark.sql.cassandra")
+            .mode(SaveMode.Append)
+            .options(Map("keyspace" -> "email_db", "table" -> "email_msg_tracker"))
+            .save()
+
+        }
+      }
+      ////// refactor
+
       newSsc
     }
 
@@ -55,56 +109,7 @@ object StreamingDirectEmails {
     */
     val ssc = StreamingContext.getActiveOrCreate(checkpoint_path, createStreamingContext)
 
-    val sqlContext = SQLContext.getOrCreate(sc)
-    import sqlContext.implicits._
 
-    val topics = Set("emails")
-    val kafkaParams = Map[String, String]("metadata.broker.list" -> brokers)
-    println(s"connecting to brokers: $brokers")
-    println(s"ssc: $ssc")
-    println(s"kafkaParams: $kafkaParams")
-    println(s"topics: $topics")
-
-    val emailsStream = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](ssc, kafkaParams, topics)
-    // experimental: breaks checkpointing recovery for another reason: Can find class OffsetRange
-    //var offsetRanges = Array[OffsetRange]()
-
-    emailsStream.foreachRDD {
-      (message: RDD[(String, String)], batchTime: Time) => {
-        // convert each RDD from the batch into a Email DataFrame
-        //email data has the format msg_id:tenant_id:mailbox_id:time_delivered:time_forwarded:time_read:time_replied
-
-        // experimental 
-        /*
-        offsetRanges = message.asInstanceOf[HasOffsetRanges].offsetRanges
-        for (o <- offsetRanges) {
-           println(s"Topic: ${o.topic} Partition: ${o.partition} FromOffset: ${o.fromOffset} UntilOffset: ${o.untilOffset}")
-        }
-        */
-
-        val df = message.map {
-          case (key, nxtEmail) => nxtEmail.split("::")
-        }.map(email => {
-          val time_delivered: Long = email(3).trim.toLong
-          val time_forwarded: Long = email(4).trim.toLong
-          val time_read: Long = email(5).trim.toLong
-          val time_replied: Long = email(6).trim.toLong
-          Email(email(0).trim.toString, email(1).trim.toString, email(2).trim.toString, time_delivered, time_forwarded, time_read, time_replied)
-        }).toDF("msg_id", "tenant_id", "mailbox_id", "time_delivered", "time_forwarded", "time_read", "time_replied")
-
-        // this can be used to debug dataframes
-        if (debugOutput)
-          df.show()
-
-        // save the DataFrame to Cassandra
-        // Note:  Cassandra has been initialized through dse spark-submit, so we don't have to explicitly set the connection
-        df.write.format("org.apache.spark.sql.cassandra")
-          .mode(SaveMode.Append)
-          .options(Map("keyspace" -> "email_db", "table" -> "email_msg_tracker"))
-          .save()
-        
-      }
-    }
 
     ssc.start()
     ssc.awaitTermination()
