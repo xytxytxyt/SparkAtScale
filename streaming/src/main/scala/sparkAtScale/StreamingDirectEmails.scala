@@ -25,13 +25,15 @@ object StreamingDirectEmails {
       println("third param is the checkpoint path  ")
       println("fourth param is the maxRatePerPartition (records/sec to read from each kafka partition)  ")
       println("fifth param is the batch interval in milliseconds")
+      println("sixth param is the auto.offset.reset type (smallest|largest)") 
     }
 
     val brokers = args(0)
     val debugOutput = args(1).toBoolean
-    val checkpoint_path = args(2).toString
-    val maxRatePerPartition = args(3).toString
+    val checkpoint_path = args(2)
+    val maxRatePerPartition = args(3)
     val batchIntervalInMillis = args(4).toInt
+    val offsetResetType= args(5)
 
     val conf = new SparkConf()
                  .set("spark.streaming.kafka.maxRatePerPartition", maxRatePerPartition)
@@ -46,7 +48,7 @@ object StreamingDirectEmails {
       println(s"Creating new StreamingContext $newSsc with checkpoint path of: $checkpoint_path")
 
       val topics = Set("emails")
-      val kafkaParams = Map[String, String]("metadata.broker.list" -> brokers)
+      val kafkaParams = Map[String, String]("metadata.broker.list" -> brokers, "auto.offset.reset"-> offsetResetType)
       println(s"connecting to brokers: $brokers")
       //println(s"ssc: $ssc")
       println(s"kafkaParams: $kafkaParams")
