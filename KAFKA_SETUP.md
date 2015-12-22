@@ -3,7 +3,9 @@ Kafka Setup - Local Machine
 ### Simple Setup 
 
 **File: kafka_2.10-0.8.2.1/config/server.properties**
+
 [Kafka 0.8.0 Docs](http://kafka.apache.org/08/documentation.html)
+
 [Kafka 0.8.2 Docs](http://kafka.apache.org/082/documentation.html)
 
 ###### Set the Kafka host address
@@ -23,9 +25,11 @@ If you change kafka host name, make sure you use this address in all other place
 `bin/kafka-server-start.sh config/server.properties`
 
 **[Kafka 0.8.0](http://kafka.apache.org/08/documentation.html)**
+
 `bin/kafka-create-topic.sh --zookeeper localhost:2181 --replica 1 --partition 20 --topic ratings`
 
 **[Kafka 0.8.2](http://kafka.apache.org/082/documentation.html)**
+
 `bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 20 --topic emails`
 
 `bin/kafka-list-topic.sh --zookeeper localhost:2181 --topic ratings`
@@ -58,10 +62,12 @@ Kafka Remote Server Setup
 `jconsole &`
 
 **[Kafka 0.8.0](http://kafka.apache.org/08/documentation.html)**
+
 `bin/kafka-create-topic.sh --zookeeper localhost:2181 --replica 1 --partition 1 --topic ratings`
 `bin/kafka-list-topic.sh --zookeeper localhost:2181`
 
 **[Kafka 0.8.2](http://kafka.apache.org/082/documentation.html)**
+
 `bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 5 --topic ratings`
 `bin/kafka-topics.sh --list --zookeeper localhost:2181`
 `bin/kafka-topics.sh --describe --topic ratings --zookeeper localhost:2181`
