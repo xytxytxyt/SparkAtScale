@@ -27,6 +27,7 @@ Parameters:
 2. Time interval (ms) between sent requests by each feeder (1 feeder sending a message every 100 ms will equate to 10 messages/sec)
 
 3. Feeder name
+
 `java -Xmx5g -Dconfig.file=dev.conf -jar feeder/target/scala-2.10/feeder-assembly-1.0.jar 1 100 emailFeeder 2>&1 1>feeder-out.log &`
 
 
