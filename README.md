@@ -21,8 +21,11 @@ Edit kafkaHost and kafkaTopic if needed. kafaHost should match the setting in ka
 ###### Run the feeder
 
 Parameters:
+
 1. Number of feeders to start 
+
 2. Time interval (ms) between sent requests by each feeder (1 feeder sending a message every 100 ms will equate to 10 messages/sec)
+
 3. Feeder name
 `java -Xmx5g -Dconfig.file=dev.conf -jar feeder/target/scala-2.10/feeder-assembly-1.0.jar 1 100 emailFeeder 2>&1 1>feeder-out.log &`
 
@@ -35,11 +38,17 @@ Parameters:
 Note: You will want to reference the correct Spark version, for example running against Spark 1.4 use 1.4.1 instead of 1.5.0
 
 Parameters:
+
 1. kafka broker: Ex. 10.200.185.103:9092 
+
 2. debug flag (limited use): Ex. true or false 
+
 3. checkpoint directory name: Ex. cfs://10.200.162.82/emails_checkpoint, dsefs://10.200.162.82/emails_checkpoint
+
 4. [spark.streaming.kafka.maxRatePerPartition](http://spark.apache.org/docs/latest/configuration.html#spark-streaming): Maximum rate (number of records per second) 
+
 5. batch interval (ms) 
+
 6. [auto.offset.reset](http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.streaming.kafka.KafkaUtils$): Ex. smallest or largest
 
 ###### Running locally for development
