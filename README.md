@@ -38,7 +38,7 @@ Parameters:
 ###### Build the streaming jar
 `sbt streaming/package`
 
-Note: You will want to reference the correct Spark version, for example running against Spark 1.4 use 1.4.1 instead of 1.5.0
+**Note: You will want to reference the correct Spark version, for example running against Spark 1.4 use 1.4.1 instead of 1.5.0**
 
 Parameters:
 
