@@ -8,6 +8,8 @@ This demo simulates a stream of email metadata.  Data flows from akka -> kafka -
 
 ### Setup the KS/table
 
+**Note: You can change RF and compaction settings in this cql script if needed.**
+
 `cqlsh -f /path_to_SparkAtScale/LoadMovieData/conf/email_db.cql` 
 
 
