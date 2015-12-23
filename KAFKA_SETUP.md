@@ -10,6 +10,7 @@ Kafka Setup - Local Machine
 
 ###### Set the Kafka host address
 If you change kafka host name, make sure you use this address in all other places.
+
 `host.name=<private_ip>`
 
 ###### Set log retention strategy appropriately
