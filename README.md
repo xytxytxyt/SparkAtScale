@@ -8,7 +8,7 @@ This demo simulates a stream of email metadata.  Data flows from akka -> kafka -
 
 ### Setup the KS/table
 
-`cqlsh -f /path_to_SparkAtScale/LoadMovieData/conf/movie_db.cql` 
+`cqlsh -f /path_to_SparkAtScale/LoadMovieData/conf/email_db.cql` 
 
 
 ### Setup Akka Feeder
