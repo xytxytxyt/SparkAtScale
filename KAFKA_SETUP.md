@@ -27,7 +27,7 @@ If you change kafka host name, make sure you use this address in all other place
 
 **[Kafka 0.8.0](http://kafka.apache.org/08/documentation.html)**
 
-`bin/kafka-create-topic.sh --zookeeper localhost:2181 --replica 1 --partition 20 --topic ratings`
+`bin/kafka-create-topic.sh --zookeeper localhost:2181 --replica 1 --partition 20 --topic emails`
 
 **[Kafka 0.8.2](http://kafka.apache.org/082/documentation.html)**
 
