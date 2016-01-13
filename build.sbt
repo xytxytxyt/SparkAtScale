@@ -15,10 +15,10 @@ lazy val streaming = (project in file("streaming"))
 
 val akkaVersion = "2.3.11"
 val sparkVersion = "1.5.0"
-//val sparkVersion = "1.4.1"
-val sparkCassandraConnectorVersion = "1.4.0-M3"
+val sparkCassandraConnectorVersion = "1.5.0-M3"
 val kafkaVersion = "0.8.2.1"
 val scalaTestVersion = "2.2.4"
+val zookeeperVersion = "3.4.6"
 
 lazy val feederDeps = Seq(
   "joda-time" % "joda-time" % "2.3",
@@ -32,11 +32,13 @@ lazy val feederDeps = Seq(
 )
 
 lazy val streamingDeps = Seq(
-  "com.datastax.spark" % "spark-cassandra-connector_2.10" % sparkCassandraConnectorVersion,
+  "com.datastax.spark" %% "spark-cassandra-connector" % sparkCassandraConnectorVersion % "provided",
   "org.apache.spark"  %% "spark-mllib"           % sparkVersion % "provided",
   "org.apache.spark"  %% "spark-graphx"          % sparkVersion % "provided",
   "org.apache.spark"  %% "spark-sql"             % sparkVersion % "provided",
   "org.apache.spark"  %% "spark-streaming"       % sparkVersion % "provided",
-  "org.apache.spark"  %% "spark-streaming-kafka" % sparkVersion % "provided",
+  "org.apache.spark"  %% "spark-streaming-kafka" % sparkVersion exclude("org.spark-project.spark", "unused"),
   "com.databricks"    %% "spark-csv"             % "1.2.0"
 )
+// not needed with latest DSE patch
+//  "org.apache.zookeeper"  % "zookeeper"             % zookeeperVersion,

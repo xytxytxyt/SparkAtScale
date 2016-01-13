@@ -144,7 +144,7 @@ object StreamingDirectEmails {
       } else {
         emailsStream.foreachRDD(rdd => {
           rdd.foreachPartition(partitionOfRecords => {
-            partitionOfRecords
+            println(partitionOfRecords)
             /*
             val p = producerPool.value.borrowObject()
             partitionOfRecords.foreach { case tweet: Tweet =>
