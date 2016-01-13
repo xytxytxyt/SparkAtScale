@@ -1,9 +1,10 @@
 package sparkAtScale
 
 import java.util.UUID
-
+import scala.sys
 import kafka.serializer.StringDecoder
 import org.apache.hadoop.conf.Configuration
+import org.apache.spark.storage.StorageLevel
 import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
@@ -20,12 +21,16 @@ object StreamingDirectEmails {
   def main(args: Array[String]) {
 
     if (args.length < 3) {
-      println("first paramteter is kafka broker ")
-      println("second param whether to display debug output  (true|false) ")
-      println("third param is the checkpoint path  ")
-      println("fourth param is the maxRatePerPartition (records/sec to read from each kafka partition)  ")
-      println("fifth param is the batch interval in milliseconds")
-      println("sixth param is the auto.offset.reset type (smallest|largest)") 
+      println("1st paramteter is kafka broker ")
+      println("2nd param whether to display debug output  (true|false) ")
+      println("3rd param is the checkpoint path  ")
+      println("4th param is the maxRatePerPartition (records/sec to read from each kafka partition)  ")
+      println("5th param is the batch interval in milliseconds")
+      println("6th param is the auto.offset.reset type (smallest|largest)") 
+      println("7th param is the type kafka stream (direct|receiver)") 
+      println("8th param is the number of partitions to consume per topic (used with receiver-based input stream)") 
+      println("9th param is the group.id that id's the consumer processes (used with receiver-based input stream)") 
+      println("10th param is the zookeeper connect string (e.g. localhost:2181) (used with receiver-based input stream)") 
     }
 
     val brokers = args(0)
@@ -33,39 +38,69 @@ object StreamingDirectEmails {
     val checkpoint_path = args(2)
     val maxRatePerPartition = args(3)
     val batchIntervalInMillis = args(4).toInt
-    val offsetResetType= args(5)
-
+    val offsetResetType = args(5)
+    val streamType = args(6)
+    val numPartitions = args(7).toInt
+    val groupId = args(8)
+    val zookeeper = args(9)
+    val storageLevel = StorageLevel.MEMORY_AND_DISK_SER
     val conf = new SparkConf()
                  .set("spark.streaming.kafka.maxRatePerPartition", maxRatePerPartition)
                  .set("spark.locality.wait", "0")
                  .set("spark.cassandra.connection.keep_alive_ms", (batchIntervalInMillis*5).toString)
 
+    if (checkpoint_path == "dont_checkpoint") {
+        conf.set("spark.streaming.receiver.writeAheadLog.enable", "false")
+    } else {
+        conf.set("spark.streaming.receiver.writeAheadLog.enable", "true")
+    }
+
     val sc = SparkContext.getOrCreate(conf)
 
     def createStreamingContext(): StreamingContext = {
       @transient val newSsc = new StreamingContext(sc, Milliseconds(batchIntervalInMillis))
-      newSsc.checkpoint(checkpoint_path)
-      println(s"Creating new StreamingContext $newSsc with checkpoint path of: $checkpoint_path")
+      if (checkpoint_path == "dont_checkpoint") {
+          println("dont_checkpoint was provided in checkpoint path, so we're not checkpointing.")
+      } else {
+          println(s"Creating new StreamingContext $newSsc with checkpoint path of: $checkpoint_path")
+          newSsc.checkpoint(checkpoint_path)
+      }
+         
 
-      val topics = Set("emails")
-      val kafkaParams = Map[String, String]("metadata.broker.list" -> brokers, "auto.offset.reset"-> offsetResetType)
+      val kafkaParams = Map[String, String]("metadata.broker.list" -> brokers, 
+                                            "auto.offset.reset"-> offsetResetType, 
+                                            "group.id"->groupId,
+                                            "zookeeper.connect"->zookeeper)
       println(s"connecting to brokers: $brokers")
       //println(s"ssc: $ssc")
       println(s"kafkaParams: $kafkaParams")
-      println(s"topics: $topics")
 
-      val emailsStream = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](newSsc, kafkaParams, topics)
+      val emailsStream = {
+          if (streamType == "direct") {
+                val topics = Set("emails")
+                KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](newSsc, kafkaParams, topics)
+          } else if (streamType == "receiver") {
+                val topics = Map("emails" -> numPartitions)
+                KafkaUtils.createStream[String, String, StringDecoder, StringDecoder](newSsc, kafkaParams, topics, storageLevel)
+          } else {
+                println(s"The streaming type provided is NOT supported: $streamType")
+                sys.exit()
+          }
+         
+      }
+
       emailsStream.foreachRDD {
         (message: RDD[(String, String)], batchTime: Time) => {
           // experimental
           var offsetRanges = Array[OffsetRange]()
 
           // experimental
-          offsetRanges = message.asInstanceOf[HasOffsetRanges].offsetRanges
-          for (o <- offsetRanges) {
-             println(s"\nTopic: ${o.topic} Partition: ${o.partition} FromOffset: ${o.fromOffset} UntilOffset: ${o.untilOffset}")
+          if (streamType == "direct") {
+              offsetRanges = message.asInstanceOf[HasOffsetRanges].offsetRanges
+              for (o <- offsetRanges) {
+                 println(s"\nTopic: ${o.topic} Partition: ${o.partition} FromOffset: ${o.fromOffset} UntilOffset: ${o.untilOffset}")
+              }
           }
-
           // Needs to be here: We have to create a SQLContext using the SparkContext that the StreamingContext is using.
           // We need to lazily instantiate a singelton instance of the SQLContext in order to recover
           // from a checkpoint.
