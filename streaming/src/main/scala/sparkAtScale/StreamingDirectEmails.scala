@@ -80,14 +80,18 @@ object StreamingDirectEmails {
                 val topics = Set("emails")
                 KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](newSsc, kafkaParams, topics)
           } else if (streamType == "receiver") {
+                // here I am, this works, but figure out how to do this correctly.
                 //val topics = Map("emails" -> numPartitions)
                 val topics = Map("emails" -> 1)
+                KafkaUtils.createStream[String, String, StringDecoder, StringDecoder](newSsc, kafkaParams, topics, storageLevel)
+                /*
                 val streams = (1 to numPartitions) map { _ => 
                   KafkaUtils.createStream[String, String, StringDecoder, StringDecoder](newSsc, kafkaParams, topics, storageLevel).map(_._2)
                 }
                 val sparkProcessingParallelism = 1 
                 val unifiedStream = newSsc.union(streams)
                 unifiedStream.repartition(sparkProcessingParallelism)
+                */
           } else {
                 println(s"The streaming type provided is NOT supported: $streamType")
                 sys.exit()
@@ -95,67 +99,48 @@ object StreamingDirectEmails {
          
       }
 
-      if (streamType == "direct") {
-        /*
-        emailsStream.foreachRDD {
-          (message: RDD[(String, String)], batchTime: Time) => {
-            // experimental
-            var offsetRanges = Array[OffsetRange]()
-  
-            // experimental
-            if (streamType == "direct") {
-                offsetRanges = message.asInstanceOf[HasOffsetRanges].offsetRanges
-                for (o <- offsetRanges) {
-                   println(s"\nTopic: ${o.topic} Partition: ${o.partition} FromOffset: ${o.fromOffset} UntilOffset: ${o.untilOffset}")
-                }
-            }
-            // Needs to be here: We have to create a SQLContext using the SparkContext that the StreamingContext is using.
-            // We need to lazily instantiate a singelton instance of the SQLContext in order to recover
-            // from a checkpoint.
-            val sqlContext = SQLContext.getOrCreate(message.sparkContext)
-            import sqlContext.implicits._
-  
-            // convert each RDD from the batch into a Email DataFrame
-            //email data has the format msg_id:tenant_id:mailbox_id:time_delivered:time_forwarded:time_read:time_replied
-            val df = message.map {
-              case (key, nxtEmail) => nxtEmail.split("::")
-            }.map(email => {
-              val time_delivered: Long = email(3).trim.toLong
-              val time_forwarded: Long = email(4).trim.toLong
-              val time_read: Long = email(5).trim.toLong
-              val time_replied: Long = email(6).trim.toLong
-              Email(email(0).trim.toString, email(1).trim.toString, email(2).trim.toString, time_delivered, time_forwarded, time_read, time_replied)
-            }).toDF("msg_id", "tenant_id", "mailbox_id", "time_delivered", "time_forwarded", "time_read", "time_replied")
-  
-            // this can be used to debug dataframes
-            if (debugOutput)
-              df.show()
-  
-            // save the DataFrame to Cassandra
-            // Note:  Cassandra has been initialized through dse spark-submit, so we don't have to explicitly set the connection
-            df.write.format("org.apache.spark.sql.cassandra")
-              .mode(SaveMode.Append)
-              .options(Map("keyspace" -> "email_db", "table" -> "email_msg_tracker"))
-              .save()
-  
+      emailsStream.foreachRDD {
+        (message: RDD[(String, String)], batchTime: Time) => {
+          // experimental
+          var offsetRanges = Array[OffsetRange]()
+
+          // experimental
+          if (streamType == "direct") {
+              offsetRanges = message.asInstanceOf[HasOffsetRanges].offsetRanges
+              for (o <- offsetRanges) {
+                 println(s"\nTopic: ${o.topic} Partition: ${o.partition} FromOffset: ${o.fromOffset} UntilOffset: ${o.untilOffset}")
+              }
           }
+          // Needs to be here: We have to create a SQLContext using the SparkContext that the StreamingContext is using.
+          // We need to lazily instantiate a singelton instance of the SQLContext in order to recover
+          // from a checkpoint.
+          val sqlContext = SQLContext.getOrCreate(message.sparkContext)
+          import sqlContext.implicits._
+
+          // convert each RDD from the batch into a Email DataFrame
+          //email data has the format msg_id:tenant_id:mailbox_id:time_delivered:time_forwarded:time_read:time_replied
+          val df = message.map {
+            case (key, nxtEmail) => nxtEmail.split("::")
+          }.map(email => {
+            val time_delivered: Long = email(3).trim.toLong
+            val time_forwarded: Long = email(4).trim.toLong
+            val time_read: Long = email(5).trim.toLong
+            val time_replied: Long = email(6).trim.toLong
+            Email(email(0).trim.toString, email(1).trim.toString, email(2).trim.toString, time_delivered, time_forwarded, time_read, time_replied)
+          }).toDF("msg_id", "tenant_id", "mailbox_id", "time_delivered", "time_forwarded", "time_read", "time_replied")
+
+          // this can be used to debug dataframes
+          if (debugOutput)
+            df.show()
+
+          // save the DataFrame to Cassandra
+          // Note:  Cassandra has been initialized through dse spark-submit, so we don't have to explicitly set the connection
+          df.write.format("org.apache.spark.sql.cassandra")
+            .mode(SaveMode.Append)
+            .options(Map("keyspace" -> "email_db", "table" -> "email_msg_tracker"))
+            .save()
+
         }
-        */
-      } else {
-        emailsStream.foreachRDD(rdd => {
-          rdd.foreachPartition(partitionOfRecords => {
-            println(partitionOfRecords)
-            /*
-            val p = producerPool.value.borrowObject()
-            partitionOfRecords.foreach { case tweet: Tweet =>
-              val bytes = converter.value.apply(tweet)
-              p.send(bytes)
-              numOutputMessages += 1
-            }
-            producerPool.value.returnObject(p)
-            */
-          })
-        })
       }
       ////// refactor
 
