@@ -37,6 +37,15 @@ If you change kafka host name, make sure you use this address in all other place
 
 `bin/kafka-console-consumer.sh --zookeeper localhost:2181 --topic ratings --from-beginning`
 
+### Checking Zookeeper offsets (useful when checking old high-level receiver consumer approach)
+[Kafka System Tools](https://cwiki.apache.org/confluence/display/KAFKA/System+Tools)
+`bin/kafka-run-class.sh kafka.tools.ExportZkOffsets --group test-consumer-group --zkconnect localhost:2181 --output-file outfilename`
+
+`bin/kafka-run-class.sh kafka.tools.ConsumerOffsetChecker --group test-consumer-group --zookeeper localhost:2181`
+
+Resetting the zookeeper offsets
+`bin/kafka-run-class.sh kafka.tools.UpdateOffsetsInZK [earliest|latest] config/consumer.properties emails`
+
 Kafka Remote Server Setup
 ===================================
 
