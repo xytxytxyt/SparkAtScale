@@ -11,7 +11,7 @@ object FeederMain {
     if (args.length < 3) {
       println("First argument is the number of feeders to start")
       println("Second argument is the time in Milliseconds to generate events in each actor")
-      println("Third argument is set to (true|false) to generate ratings randomly")
+      println("Third argument is set to (ratingFeeder|randRatingsFeeder|emailFeeder) to generate ratings randomly")
       System.exit(0)
     }
     val numFeeders = args(0).toInt
@@ -22,12 +22,20 @@ object FeederMain {
     println(s"tick duration: ${tickDuration}")
 
 
+    val feederActorProps = args(2) match {
+      case "ratingFeeder" => FeederActor.props(tickDuration)
+      case "randRatingFeeder" => RandomFeederActor.props(tickDuration)
+      case "emailFeeder" => EmailFeederActor.props(tickDuration)
+    }
+    
+    /*
     val feederActorProps = if (args(2).toBoolean) {
       RandomFeederActor.props(tickDuration)
     }
     else {
       FeederActor.props(tickDuration)
     }
+    */
 
     for (indx <- 1 to numFeeders) {
       val feederActor = system.actorOf(feederActorProps, s"feederActor-$indx")
