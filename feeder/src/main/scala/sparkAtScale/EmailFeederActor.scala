@@ -31,7 +31,7 @@ class EmailFeederActor(tickInterval:FiniteDuration) extends Actor with ActorLogg
 
   import FeederActor.SendNextLine
 
-  var counter = 0
+  var emailsDelivered = 0
 
   implicit val executionContext = context.system.dispatcher
 
@@ -69,9 +69,11 @@ class EmailFeederActor(tickInterval:FiniteDuration) extends Actor with ActorLogg
         override def onCompletion(result: RecordMetadata, exception: Exception) {
           if (exception != null) log.info("Failed to send email_record: " + exception)
           else {
+            emailsDelivered += 1
+            println(s"Number of emails successfully delivered to Kafka: $emailsDelivered")
             //periodically log the num of messages sent
-            if (emailsSent % 20987 == 0)
-              log.info(s"emailsSent = $emailsSent  //  result partition: ${result.partition()}")
+            //if (emailsSent % 20987 == 0)
+            //  log.info(s"emailsSent = $emailsSent  //  result partition: ${result.partition()}")
           }
         }
       })

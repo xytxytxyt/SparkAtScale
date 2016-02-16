@@ -57,15 +57,27 @@ Parameters:
 
 6. [auto.offset.reset](http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.streaming.kafka.KafkaUtils$): Ex. smallest or largest
 
+7. topic name 
+
+8. kafka stream type: ex. direct or receiver
+
+9. number of partitions to consume per topic (controls read parallelism) (receiver approach: you'll want to match whatever used when creating the topic) 
+
+10. processesing parallelism (controls write parallelism) (receiver approach: you'll want to match whatever used when creating the topic) 
+
+11. group.id that id's the consumer processes (receiver approach: you'll want to match whatever used when creating the topic) 
+
+12. zookeeper connect string (e.g localhost:2181) (receiver approach: you'll want to match whatever used when creating the topic) 
+
 ###### Running locally for development
-`spark-submit --class sparkAtScale.StreamingDirectEmails streaming/target/scala-2.10/streaming_2.10-0.1.jar <kafka-broker-ip>:9092 true dsefs://[optional-ip-address]/emails_checkpoint 50000 5000 largest`
+`spark-submit --class sparkAtScale.StreamingDirectEmails streaming/target/scala-2.10/streaming-assembly-0.1.jar <kafka-broker-ip>:9092 true dsefs://[optional-ip-address]/emails_checkpoint 50000 5000 largest emails receiver 1 100 test-consumer-group localhost:2181`
  
 ###### Running on a server in foreground
-`dse spark-submit --driver-memory 2G --class sparkAtScale.StreamingDirectEmails ./streaming/target/scala-2.10/streaming_2.10-0.1.jar <kafka-broker-ip>:9092 true dsefs://[optional-ip-address]/emails_checkpoint 50000 5000 largest`
+`dse spark-submit --driver-memory 2G --class sparkAtScale.StreamingDirectEmails ./streaming/target/scala-2.10/streaming-assembly-0.1.jar <kafka-broker-ip>:9092 true dsefs://[optional-ip-address]/emails_checkpoint 50000 5000 largest emails direct 1 100 test-consumer-group localhost:2181`
  
 
 ** Note: When running against DSE 5.0.0/Spark 1.6 we need to reference the dsefs-hadoop*.jar explicitly for now (pending public 1.6 connector releaase).
 `dse spark-submit --driver-memory 2G --jars /home/automaton/dse/resources/hadoop/lib/dsefs-hadoop_2.10-0.1.0-99-g2d2fd18.jar --class sparkAtScale.StreamingDirectEmails ./streaming/target/scala-2.10/streaming-assembly-0.1.jar <kafka-broker-ip>:9092 true dsefs:///emails_checkpoint 50000 5000 largest`
 
 ###### Running on the server for production mode
-`nohup dse spark-submit --driver-memory 2G --class sparkAtScale.StreamingDirectEmails ./streaming/target/scala-2.10/streaming_2.10-0.1.jar <kafka-broker-ip>:9092 true dsefs://[optional-ip-address]/emails_checkpoint 50000 5000 largest >& streaming.out &`
+`nohup dse spark-submit --driver-memory 2G --class sparkAtScale.StreamingDirectEmails ./streaming/target/scala-2.10/streaming-assembly-0.1.jar <kafka-broker-ip>:9092 true dsefs://[optional-ip-address]/emails_checkpoint 50000 5000 largest emails receiver 1 100 test-consumer-group localhost:2181 >& streaming.out &`
