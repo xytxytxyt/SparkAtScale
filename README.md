@@ -43,7 +43,6 @@ Parameters:
 
 **Special Note for DSE 5.0.0/Spark 1.6: For DSE 5.0.0 we should use build.sbt.exampleWithUnmanagedJars, additional steps include copying joda-time-2.9.jar to streaming/lib/joda-time-2.9.jar and referencing the path to dsefs-hadoop<id>.jar using the --jars options in spark-submit when starting the streaming demo. For the receiver-based approach we need to use StreamingDirectEmails.scala.4.6 (build setup that supports both will be added soon).**
 
-
 Parameters:
 
 1. kafka broker: Ex. 10.200.185.103:9092 
