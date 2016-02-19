@@ -143,10 +143,6 @@ object StreamingDirectEmails {
             Email(email(0).trim.toString, email(1).trim.toString, email(2).trim.toString, time_delivered, time_forwarded, time_read, time_replied)
           }).toDF("msg_id", "tenant_id", "mailbox_id", "time_delivered", "time_forwarded", "time_read", "time_replied")
 
-          // this can be used to debug dataframes
-          if (debugOutput)
-            df.show()
-
           // save the DataFrame to Cassandra
           // Note:  Cassandra has been initialized through dse spark-submit, so we don't have to explicitly set the connection
           df.write.format("org.apache.spark.sql.cassandra")
@@ -154,6 +150,11 @@ object StreamingDirectEmails {
             .options(Map("keyspace" -> "email_db", "table" -> "email_msg_tracker"))
             .save()
 
+          if (debugOutput) {
+            val count = df.count()
+            println(s"Successfully saved $count") 
+            df.show()
+          }
         }
       }
       
