@@ -10,7 +10,7 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{SQLContext, SaveMode}
 import org.apache.spark.streaming.kafka.{KafkaUtils,OffsetRange,HasOffsetRanges}
-import org.apache.spark.streaming.{Milliseconds, StreamingContext, Time}
+import org.apache.spark.streaming.{Milliseconds, StreamingContext, Time, State, StateSpec}
 import org.joda.time.DateTime
 
 /** This uses the Kafka Direct introduced in Spark 1.4
@@ -81,9 +81,11 @@ object StreamingDirectEmails {
 
       val emailsStream = {
           if (streamType == "direct") {
+                // returns a DirectKafkaInputDStream
                 val topics = Set(topicName)
                 KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](newSsc, kafkaParams, topics)
           } else if (streamType == "receiver") {
+                // returns a TransformedDStream
                 val topics = Map(topicName -> 1) // Changing this number controls the number of consumer threads per input DStream
                 
                 // Controls the number of inpout dstreams
@@ -102,67 +104,107 @@ object StreamingDirectEmails {
                 println(s"The streaming type provided is NOT supported: $streamType")
                 sys.exit()
           }
-         
       }
-      /*
+      
       println("\n\nTesting and debugging type(emailsStream)")
       println(emailsStream.asInstanceOf[AnyRef].getClass.getSimpleName)
-      emailsStream.foreachRDD { println(rdd) }
+      //emailsStream.foreachRDD { rdd => println(rdd) }
       println("\n\n")
-      */
-      
-      emailsStream.foreachRDD {
-        (message: RDD[(String, String)], batchTime: Time) => {
-          // experimental
-          var offsetRanges = Array[OffsetRange]()
 
-          // experimental
-          if (streamType == "direct") {
-              //println("Classname of message is: "+message.asInstanceOf[AnyRef].getClass.getSimpleName)
-              offsetRanges = message.asInstanceOf[HasOffsetRanges].offsetRanges
-              for (o <- offsetRanges) {
-                 println(s"\nTopic: ${o.topic} Partition: ${o.partition} FromOffset: ${o.fromOffset} UntilOffset: ${o.untilOffset}")
-              }
+      // Update the cumulative count using mapWithState
+      // This will give a DStream made of state (which is the cumulative count of the words)
+      val mappingFunc = (key: String, nxtEmail: Option[String], state: State[Long]) => {
+        var output = None : Option[(String,String)] 
+        if (state.exists) {
+          println("Testing and debugging: state.exists.")
+          val stateTime: Long = state.get  // Get the existing state
+          val shouldRemove = false         // Hard-coded for now 
+          if (shouldRemove) {
+            state.remove()                 // Remove the state
+          } else {
+            val nxtEmailArr = nxtEmail.get.split("::") 
+            val timeReplied: Long = nxtEmailArr.last.trim.toLong
+            val stateTimeReplied = timeReplied | stateTime // recompute the timestamp based on state
+            val statefulEmailArr = nxtEmailArr.updated((nxtEmailArr.length-1), stateTimeReplied.toString)
+            val statefulEmailStr = statefulEmailArr.mkString("::") 
+            output = Some((key, statefulEmailStr))
+            state.update(stateTimeReplied) // Set the new state
           }
+        } else {
+          println("Testing and debugging: state does not exist, so setting the initial state.")
+          val initialState: Long = "1000000".toLong  
+          state.update(initialState)       // Set the initial state
+        }
+        println(s"Testing and debugging: end of mappingFunc(), state is: $state")
+        output
+      }
 
-          // Needs to be here: We have to create a SQLContext using the SparkContext that the StreamingContext is using.
-          // We need to lazily instantiate a singelton instance of the SQLContext in order to recover
-          // from a checkpoint.
-          val sqlContext = SQLContext.getOrCreate(message.sparkContext)
-          import sqlContext.implicits._
+      val stateEmailsStream = emailsStream.mapWithState(StateSpec.function(mappingFunc))
 
-          // convert each RDD from the batch into a Email DataFrame
-          //email data has the format msg_id:tenant_id:mailbox_id:time_delivered:time_forwarded:time_read:time_replied
-          val df = message.map {
-            case (key, nxtEmail) => nxtEmail.split("::")
-          }.map(email => {
-            val time_delivered: Long = email(3).trim.toLong
-            val time_forwarded: Long = email(4).trim.toLong
-            val time_read: Long = email(5).trim.toLong
-            val time_replied: Long = email(6).trim.toLong
-            Email(email(0).trim.toString, email(1).trim.toString, email(2).trim.toString, time_delivered, time_forwarded, time_read, time_replied)
-          }).toDF("msg_id", "tenant_id", "mailbox_id", "time_delivered", "time_forwarded", "time_read", "time_replied")
-
-          // save the DataFrame to Cassandra
-          // Note:  Cassandra has been initialized through dse spark-submit, so we don't have to explicitly set the connection
-          df.write.format("org.apache.spark.sql.cassandra")
-            .mode(SaveMode.Append)
-            .options(Map("keyspace" -> "email_db", "table" -> "email_msg_tracker"))
-            .save()
-
-          if (debugOutput) {
-            val count = df.count()
-            println(s"Successfully saved $count") 
-            df.show()
+      println("\n\nTesting and debugging type(stateEmailsStream)")
+      println(stateEmailsStream.asInstanceOf[AnyRef].getClass.getSimpleName)
+      println("\n\n")
+      //emailsStream.foreachRDD {
+      stateEmailsStream.foreachRDD {
+        (msg: RDD[Option[(String, String)]], batchTime: Time) => { msg.map( msg
+          msg match { 
+            case Some(message) => {
+              // experimental
+              var offsetRanges = Array[OffsetRange]()
+    
+              // experimental
+              /*
+              if (streamType == "direct") {
+                  // testing and debugging
+                  println("Classname of message is: "+message.asInstanceOf[AnyRef].getClass.getSimpleName)
+                  offsetRanges = message.asInstanceOf[HasOffsetRanges].offsetRanges
+                  for (o <- offsetRanges) {
+                     println(s"\nTopic: ${o.topic} Partition: ${o.partition} FromOffset: ${o.fromOffset} UntilOffset: ${o.untilOffset}")
+                  }
+              }
+              */
+    
+              // Needs to be here: We have to create a SQLContext using the SparkContext that the StreamingContext is using.
+              // We need to lazily instantiate a singelton instance of the SQLContext in order to recover
+              // from a checkpoint.
+              val sqlContext = SQLContext.getOrCreate(message.sparkContext)
+              import sqlContext.implicits._
+    
+              // testing and debugging
+              println("message.collect().foreach(println)")
+              message.collect().foreach(println)
+              
+              // convert each RDD from the batch into a Email DataFrame
+              //email data has the format msg_id:tenant_id:mailbox_id:time_delivered:time_forwarded:time_read:time_replied
+              val df = message.map {
+                case Some((key, nxtEmail)) => nxtEmail.split("::")
+              }.map(email => {
+                val time_delivered: Long = email(3).trim.toLong
+                val time_forwarded: Long = email(4).trim.toLong
+                val time_read: Long = email(5).trim.toLong
+                val time_replied: Long = email(6).trim.toLong
+                Email(email(0).trim.toString, email(1).trim.toString, email(2).trim.toString, time_delivered, time_forwarded, time_read, time_replied)
+              }).toDF("msg_id", "tenant_id", "mailbox_id", "time_delivered", "time_forwarded", "time_read", "time_replied")
+    
+              // save the DataFrame to Cassandra
+              // Note:  Cassandra has been initialized through dse spark-submit, so we don't have to explicitly set the connection
+              df.write.format("org.apache.spark.sql.cassandra")
+                .mode(SaveMode.Append)
+                .options(Map("keyspace" -> "email_db", "table" -> "email_msg_tracker"))
+                .save()
+    
+              if (debugOutput) {
+                val count = df.count()
+                println(s"Successfully saved $count") 
+                df.show()
+              }
+            }
           }
         }
-      }
-      
-      ////// refactor
-
+      } 
       newSsc
     }
-
+  
     /*
     val hadoopConf: Configuration = SparkHadoopUtil.get.conf
     hadoopConf.set("cassandra.username", "robot")
@@ -170,8 +212,6 @@ object StreamingDirectEmails {
     val ssc = StreamingContext.getActiveOrCreate(checkpoint_path, createStreamingContext, hadoopConf)
     */
     val ssc = StreamingContext.getActiveOrCreate(checkpoint_path, createStreamingContext)
-
-
 
     ssc.start()
     ssc.awaitTermination()
