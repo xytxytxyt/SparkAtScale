@@ -13,6 +13,11 @@ val globalSettings = Seq(
   scalaVersion := "2.10.5"
 )
 
+lazy val examples = (project in file("examples"))
+                    .settings(name := "examples")
+                    .settings(globalSettings:_*)
+                    .settings(libraryDependencies ++= examplesDeps)
+
 lazy val feeder = (project in file("feeder"))
                     .settings(name := "feeder")
                     .settings(globalSettings:_*)
@@ -52,6 +57,16 @@ lazy val feederDeps = Seq(
 //"com.datastax.spark" %% "spark-cassandra-connector" % sparkCassandraConnectorVersion % "provided",
 //  "joda-time"         %% "joda-time"             % "2.9" % "provided",
 lazy val streamingDeps = Seq(
+  "joda-time"         %  "joda-time"             % jodaVersion  % "provided",
+  "org.apache.spark"  %% "spark-mllib"           % sparkVersion % "provided",
+  "org.apache.spark"  %% "spark-graphx"          % sparkVersion % "provided",
+  "org.apache.spark"  %% "spark-sql"             % sparkVersion % "provided",
+  "org.apache.spark"  %% "spark-streaming"       % sparkVersion % "provided",
+  "org.apache.spark"  %% "spark-streaming-kafka" % sparkVersion exclude("org.spark-project.spark", "unused"),
+  "com.databricks"    %% "spark-csv"             % "1.2.0"
+)
+
+lazy val examplesDeps = Seq(
   "joda-time"         %  "joda-time"             % jodaVersion  % "provided",
   "org.apache.spark"  %% "spark-mllib"           % sparkVersion % "provided",
   "org.apache.spark"  %% "spark-graphx"          % sparkVersion % "provided",
