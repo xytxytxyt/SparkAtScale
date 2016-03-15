@@ -27,13 +27,8 @@ val akkaVersion = "2.3.11"
 
 // This needs to match whatever Spark version being used in DSE
 val sparkVersion = "1.6.0"
-
-// Only needed if we're not using DSE dependencies that come with sparkClassPath.
-val sparkCassandraConnectorVersion = "1.6.0-M1-6090fae"
-
 val kafkaVersion = "0.8.2.1"
 val scalaTestVersion = "2.2.4"
-//val zookeeperVersion = "3.4.6"
 val jodaVersion = "2.9"
 
 lazy val feederDeps = Seq(
@@ -48,9 +43,6 @@ lazy val feederDeps = Seq(
 )
 
 // Do not define in streaming deps if we reference them in existing DSE libs
-// Note: we needed to add joda.jar to our lib folder, and we need to reference dsefs-hadoop-*jar with spark-submit
-//"com.datastax.spark" %% "spark-cassandra-connector" % sparkCassandraConnectorVersion % "provided",
-//  "joda-time"         %% "joda-time"             % "2.9" % "provided",
 lazy val streamingDeps = Seq(
   "joda-time"         %  "joda-time"             % jodaVersion  % "provided",
   "org.apache.spark"  %% "spark-mllib"           % sparkVersion % "provided",
