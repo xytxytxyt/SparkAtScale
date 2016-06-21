@@ -1,5 +1,5 @@
 val DSE_HOME = sys.env.getOrElse("DSE_HOME", sys.env("HOME")+"dse")
-val sparkClasspathStr = s"$DSE_HOME/bin/dse spark-classpath".!!.trim
+val sparkClasspathStr = s"dse spark-classpath".!!.trim
 val sparkClasspathArr = sparkClasspathStr.split(':')
 
 // Find all Jars on dse spark-classpath
