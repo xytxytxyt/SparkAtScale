@@ -22,7 +22,7 @@ val scalaTestVersion = "2.2.4"
 val jodaVersion = "2.9"
 
 val sparkStreamingKafkaDep: String = {
-  if (dseVersion.toDouble >= 5.1) { 
+  if (dseScalaMajorMinorVersion.toDouble > 2.10) {
     s"spark-streaming-kafka-${kafkaMajorVersion}-${kafkaMinorVersion}"   
   } else {
     "spark-streaming-kafka"   
